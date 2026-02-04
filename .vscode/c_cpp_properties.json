@@ -3,10 +3,16 @@
         {
             "name": "Win32",
             "includePath": [
+                "${workspaceFolder}/**",
                 "${workspaceFolder}/c_core/include",
                 "${workspaceFolder}/c_core/third_party/kiss_fft"
             ],
-            "compileCommands": "${workspaceFolder}/.vscode/compile_commands.json",
+            "defines": [
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "D:/Tools/Microsoft Visual Studio/2026/Enterprise/VC/Tools/MSVC/14.50.35717/bin/HostX64/x64/cl.exe",
+            "cStandard": "c11",
             "intelliSenseMode": "windows-msvc-x64"
         }
     ],
