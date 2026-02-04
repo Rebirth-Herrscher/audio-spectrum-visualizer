@@ -3,7 +3,6 @@ use std::path::Path;
 fn main() {
     let profile = std::env::var("PROFILE").unwrap(); // debug 或 release
 
-    // xmake 实际路径：build/windows/x64/{profile}/
     let xmake_lib_dir = format!("../build/windows/x64/{}", profile);
 
     let test_lib = format!("{}/c_test.lib", xmake_lib_dir);
