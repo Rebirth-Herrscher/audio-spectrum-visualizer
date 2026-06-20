@@ -1,0 +1,4 @@
+# Mark Flutter auto-generated Windows runner as generated code
+spectrum_ui/windows/runner/* linguist-generated=true
+spectrum_ui/windows/flutter/* linguist-generated=true
+spectrum_ui/pubspec.lock linguist-generated=true
