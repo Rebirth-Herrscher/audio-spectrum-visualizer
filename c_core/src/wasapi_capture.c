@@ -154,7 +154,7 @@ int wasapi_init_client(wasapi_ctx_t *ctx, bool loopback) {
     ctx->sample_rate = pFormat->nSamplesPerSec;
     ctx->channels    = pFormat->nChannels;
 
-    REFERENCE_TIME hnsBufferDuration = 10LL * REFTIMES_PER_MILLISEC;
+    REFERENCE_TIME hnsBufferDuration = 5LL * REFTIMES_PER_MILLISEC;
     REFERENCE_TIME hnsPeriodicity    = 0;
 
     DWORD streamFlags = AUDCLNT_STREAMFLAGS_LOOPBACK

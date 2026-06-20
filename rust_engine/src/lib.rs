@@ -81,7 +81,7 @@ pub extern "C" fn engine_start_capture(sr: u32, ch: u32, bf: u32, nfft: u32, sp:
         let mut spec = vec![0.0f32; sp as usize];
         let rf = 1024u32; let mut buf = vec![0.0f32; (rf*ch) as usize];
         while RUNNING.load(Ordering::Acquire) {
-            unsafe { wasapi_wait(ctx, 16); }
+            unsafe { wasapi_wait(ctx, 5); }
             let read = unsafe { wasapi_read(ctx, buf.as_mut_ptr(), rf) };
             if read > 0 { for f in 0..read as usize {
                 if rp >= nfft as usize { rp = 0; }

@@ -43,7 +43,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
     if (r != 0) { final e = _engine!.engineLastError(); setState(() => _status = 'Failed: ${e != nullptr ? fromCString(e) : "code $r"}'); return; }
     _spectrumSize = _engine!.engineGetSpectrumSize(); _spectrum = Float32List(_spectrumSize); _capturing = true;
     setState(() => _status = 'Capturing...');
-    _timer = Timer.periodic(const Duration(milliseconds: 16), (_) { _readSpectrum(); });
+    _timer = Timer.periodic(const Duration(milliseconds: 8), (_) { _readSpectrum(); });
   }
 
   void _readSpectrum() {
@@ -56,7 +56,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
         for (var i=0;i<n;i++) { final v=ptr[i]; _spectrum[i]=v.isNaN||v.isInfinite?0.0:v; }
         final tMax = _findMax(_spectrum);
         if (tMax > 0) { if (_smoothMax <= 0) _smoothMax = tMax; else _smoothMax += (tMax - _smoothMax) * 0.5; }
-        for (var i=0;i<n;i++) { final t=(_spectrum[i]/_smoothMax).clamp(0.0,1.0); final factor = t > _smooth[i] ? 0.4 : 0.7; _smooth[i]+=(t-_smooth[i])*factor; }
+        for (var i=0;i<n;i++) { final t=(_spectrum[i]/_smoothMax).clamp(0.0,1.0); final factor = t > _smooth[i] ? 0.25 : 0.5; _smooth[i]+=(t-_smooth[i])*factor; }
       }
       calloc.free(ptr);
       if (mounted) setState(() {});
@@ -108,7 +108,7 @@ class SpectrumPainter extends CustomPainter {
       fillPath.lineTo(x, y);
 
       // Peak hold with slow decay
-      if (t > _peaks[i]) _peaks[i] = t; else _peaks[i] *= 0.96;
+      if (t > _peaks[i]) _peaks[i] = t; else _peaks[i] *= 0.98;
     }
     fillPath..lineTo(size.width, size.height)..close();
 
