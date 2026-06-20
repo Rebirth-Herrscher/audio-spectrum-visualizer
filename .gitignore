@@ -56,3 +56,11 @@ $RECYCLE.BIN/
 
 # 如果需要分发预编译的 pyd，注释掉下面这行
 # python_ui/spectrum_engine.pyd
+
+# Flutter
+spectrum_ui/build/
+spectrum_ui/.dart_tool/
+spectrum_ui/windows/flutter/ephemeral/
+
+compile_commands.json
+.reasonix/

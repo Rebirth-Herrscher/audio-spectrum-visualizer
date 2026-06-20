@@ -17,11 +17,14 @@ typedef struct {
     uint32_t channels;
 } wasapi_config_t;
 
-int wasapi_create(wasapi_ctx_t **ctx, const wasapi_config_t *config);
-void wasapi_destroy(wasapi_ctx_t *ctx);
-int wasapi_start(wasapi_ctx_t *ctx);
-void wasapi_stop(wasapi_ctx_t *ctx);
-uint32_t wasapi_read(wasapi_ctx_t *ctx, float *dst, uint32_t frames);
+int      wasapi_create(wasapi_ctx_t **ctx, const wasapi_config_t *config);
+void     wasapi_destroy(wasapi_ctx_t *ctx);
+int      wasapi_get_default_device(wasapi_ctx_t *ctx);
+int      wasapi_init_client(wasapi_ctx_t *ctx, bool loopback);
+int      wasapi_start(wasapi_ctx_t *ctx);
+void     wasapi_stop(wasapi_ctx_t *ctx);
+uint32_t wasapi_wait(wasapi_ctx_t *ctx, uint32_t timeout_ms);
+uint32_t wasapi_read(wasapi_ctx_t *ctx, float *buffer, uint32_t frames);
 uint32_t wasapi_get_rate(const wasapi_ctx_t *ctx);
 const char *wasapi_error(const wasapi_ctx_t *ctx);
 

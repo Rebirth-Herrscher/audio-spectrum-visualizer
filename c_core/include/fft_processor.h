@@ -19,8 +19,7 @@ void fft_magnitude(const kiss_fft_cpx *fft_output, float *magnitude, uint32_t nf
 
 uint32_t *log_map_create(uint32_t nfft, uint32_t screen_points, float sample_rate);
 void log_map_destroy(uint32_t *map);
-void log_map_apply(const float *fft_magnitude, const uint32_t *map,
-                   float *output, uint32_t screen_points);
+void log_map_apply(const float *fft_magnitude, const uint32_t *map, float *output, uint32_t screen_points);
 
 #ifdef __cplusplus
 }

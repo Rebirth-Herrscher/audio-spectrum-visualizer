@@ -1,0 +1,88 @@
+# This file configures the analyzer, which statically analyzes Dart code to
+# check for errors, warnings, and lints.
+#
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
+# invoked from the command line by running `flutter analyze`.
+
+# The following line activates a set of recommended lints for Flutter apps,
+# packages, and plugins designed to encourage good coding practices.
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  # The lint rules applied to this project can be customized in the
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+  # included above or to enable additional rules. A list of all available lints
+  # and their documentation is published at https://dart.dev/lints.
+  #
+  # Instead of disabling a lint rule for the entire project in the
+  # section below, it can also be suppressed for a single line of code
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
+  # producing the lint.
+  rules:
+    # ==============================
+    # 一、异步安全
+    # ==============================
+    # 防止 async 函数里异常被吞掉
+    - avoid_void_async
+    # 防止 Future 被遗忘（比如忘记 await），这在 Flutter 里极易导致 UI 不更新或逻辑错误
+    - unawaited_futures
+    # 更激进的 Future 检查
+    - discarded_futures
+    
+    # ==============================
+    # 二、内存泄漏防范
+    # ==============================
+    # 强制要求取消 StreamSubscription，防止页面关闭后仍在监听
+    - cancel_subscriptions
+    # 强制要求关闭 StreamController，防止资源泄漏
+    - close_sinks
+    
+    # ==============================
+    # 三、类型安全
+    # ==============================
+    # 禁止使用 dynamic（除非你显式写出 dynamic 关键字，强迫你思考）
+    - avoid_dynamic_calls
+    # 总是声明返回类型，让代码结构更清晰
+    - always_declare_return_types
+    # 避免不必要的类型转换
+    - avoid_type_to_string
+    # 闭包参数尽量不写类型（交给推导），代码更简洁
+    - avoid_types_on_closure_parameters
+    
+    # ==============================
+    # 四、性能与编码习惯
+    # ==============================
+    # 性能优化三件套
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - prefer_const_literals_to_create_immutables
+    # 变量尽可能定义为 final（防止意外修改）
+    - prefer_final_fields
+    - prefer_final_locals
+    - prefer_final_in_for_each
+    # Flutter Widget 必须写 Key（尤其是列表场景，避免状态错乱）
+    - use_key_in_widget_constructors
+    # 避免无用代码
+    - unnecessary_statements
+    - avoid_print # 建议用 debugPrint 或 logger
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    
+analyzer:
+  # 2. 开启严格类型模式（强类型安全核心）
+  # 这几行配置会让 Dart 变成像 TypeScript/Kotlin 那样的强类型语言
+  # 能够避免很多 "dynamic" 导致的运行时崩溃
+  language:
+    strict-casts: true        # 禁止隐式向下转型
+    strict-inference: true    # 强制推断，不推断失败不回退到 dynamic
+    strict-raw-types: true    # 强制泛型参数明确
+
+  errors:
+    # 3. 把关键问题直接报错，而不是警告（逼自己改正）
+    missing_required_param: error    # 必传参数没写，直接报错
+    missing_return: error            # 函数缺返回值，直接报错
+    prefer_const_constructors: error # 性能优化：const 必须写
+# Additional information about this file can be found at
+# https://dart.dev/guides/language/analysis-options

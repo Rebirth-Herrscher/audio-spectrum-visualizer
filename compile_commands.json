@@ -1,0 +1,21 @@
+[
+{
+  "directory": "D:\\All_Project\\self_project\\audio-spectrum-visualizer",
+  "arguments": ["D:\\programming_languages\\LLVM\\bin\\clang-cl.exe", "-c", "--target=x86_64-pc-windows-msvc", "-MD", "-O2", "-std:c11", "-Ic_core\\include", "-Ic_core\\third_party\\kiss_fft", "-DUNICODE", "-D_UNICODE", "/utf-8", "/arch:AVX2", "/fp:fast", "-DNDEBUG", "-Fobuild\\.objs\\c_core\\windows\\x64\\release\\c_core\\src\\fft_processor.c.obj", "c_core\\src\\fft_processor.c"],
+  "file": "c_core\\src\\fft_processor.c"
+},
+{
+  "directory": "D:\\All_Project\\self_project\\audio-spectrum-visualizer",
+  "arguments": ["D:\\programming_languages\\LLVM\\bin\\clang-cl.exe", "-c", "--target=x86_64-pc-windows-msvc", "-MD", "-O2", "-std:c11", "-Ic_core\\include", "-Ic_core\\third_party\\kiss_fft", "-DUNICODE", "-D_UNICODE", "/utf-8", "/arch:AVX2", "/fp:fast", "-DNDEBUG", "-Fobuild\\.objs\\c_core\\windows\\x64\\release\\c_core\\src\\wasapi_capture.c.obj", "c_core\\src\\wasapi_capture.c"],
+  "file": "c_core\\src\\wasapi_capture.c"
+},
+{
+  "directory": "D:\\All_Project\\self_project\\audio-spectrum-visualizer",
+  "arguments": ["D:\\programming_languages\\LLVM\\bin\\clang-cl.exe", "-c", "--target=x86_64-pc-windows-msvc", "-MD", "-O2", "-std:c11", "-Ic_core\\include", "-Ic_core\\third_party\\kiss_fft", "-DUNICODE", "-D_UNICODE", "/utf-8", "/arch:AVX2", "/fp:fast", "-DNDEBUG", "-Fobuild\\.objs\\c_core\\windows\\x64\\release\\c_core\\third_party\\kiss_fft\\kiss_fft.c.obj", "c_core\\third_party\\kiss_fft\\kiss_fft.c"],
+  "file": "c_core\\third_party\\kiss_fft\\kiss_fft.c"
+},
+{
+  "directory": "D:\\All_Project\\self_project\\audio-spectrum-visualizer",
+  "arguments": ["D:\\programming_languages\\LLVM\\bin\\clang-cl.exe", "-c", "--target=x86_64-pc-windows-msvc", "-MD", "-O2", "-std:c11", "-Ic_core\\include", "-Ic_core\\third_party\\kiss_fft", "-DUNICODE", "-D_UNICODE", "/utf-8", "/arch:AVX2", "/fp:fast", "-DNDEBUG", "-Fobuild\\.objs\\c_core\\windows\\x64\\release\\c_core\\third_party\\kiss_fft\\kiss_fftr.c.obj", "c_core\\third_party\\kiss_fft\\kiss_fftr.c"],
+  "file": "c_core\\third_party\\kiss_fft\\kiss_fftr.c"
+}]

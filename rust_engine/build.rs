@@ -1,34 +1,37 @@
 use std::path::Path;
 
 fn main() {
-    let profile = std::env::var("PROFILE").unwrap(); // debug 或 release
+    let profile = std::env::var("PROFILE").unwrap();
+    let other_profile = if profile == "debug" { "release" } else { "debug" };
 
-    let xmake_lib_dir = format!("../build/windows/x64/{}", profile);
+    // 候选搜索路径（按优先级）
+    let candidates: Vec<String> = vec![
+        format!("../build/windows/x64/{}", profile),       // 同模式优先
+        format!("../build/windows/x64/{}", other_profile), // 回退到另一模式
+        format!("../build/{}", profile),                   // 旧路径
+        format!("../build/{}", other_profile),             // 旧路径另一模式
+    ];
 
-    let test_lib = format!("{}/c_test.lib", xmake_lib_dir);
-    let core_lib = format!("{}/c_core.lib", xmake_lib_dir);
+    let lib_path = candidates.iter().find(|dir| {
+        Path::new(&format!("{}/c_core.lib", dir)).exists()
+    });
 
-    let (lib_name, lib_path) = if Path::new(&test_lib).exists() {
-        ("c_test", xmake_lib_dir)
-    } else if Path::new(&core_lib).exists() {
-        ("c_core", xmake_lib_dir)
-    } else {
-        // 备用：尝试旧路径
-        let old_path = format!("../build/{}", profile);
-        let old_test = format!("{}/c_test.lib", old_path);
-        let old_core = format!("{}/c_core.lib", old_path);
-
-        if Path::new(&old_test).exists() {
-            ("c_test", old_path)
-        } else if Path::new(&old_core).exists() {
-            ("c_core", old_path)
-        } else {
-            panic!("No C library found! Tried: {} and {}", test_lib, old_path);
+    match lib_path {
+        Some(path) => {
+            println!("cargo:rustc-link-lib=static=c_core");
+            println!("cargo:rustc-link-search=native={}", path);
         }
-    };
+        None => panic!(
+            "c_core.lib not found in any of: {:?}",
+            candidates.iter().map(|d| format!("{}/c_core.lib", d)).collect::<Vec<_>>()
+        ),
+    }
 
-    println!("cargo:rustc-link-lib=static={}", lib_name);
-    println!("cargo:rustc-link-search=native={}", lib_path);
+    // WASAPI COM dependencies
+    println!("cargo:rustc-link-lib=ole32");
+    println!("cargo:rustc-link-lib=oleaut32");
+    println!("cargo:rustc-link-lib=winmm");
+    println!("cargo:rustc-link-lib=mmdevapi");
 
     println!("cargo:rerun-if-changed=../c_core/include");
 }

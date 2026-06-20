@@ -1,0 +1,139 @@
+import 'dart:async';
+import 'dart:ffi' hide Size;
+import 'dart:typed_data';
+
+import 'package:ffi/ffi.dart';
+import 'package:flutter/material.dart';
+import 'engine_bridge.dart';
+
+void main() { runApp(const MyApp()); }
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+  @override Widget build(BuildContext c) => MaterialApp(title: 'Audio Spectrum', theme: ThemeData(brightness: Brightness.dark), home: const SpectrumPage());
+}
+
+class SpectrumPage extends StatefulWidget {
+  const SpectrumPage({super.key});
+  @override State<SpectrumPage> createState() => _SpectrumPageState();
+}
+
+class _SpectrumPageState extends State<SpectrumPage> {
+  EngineBridge? _engine; bool _capturing = false; String _status = 'Initializing...';
+  int _spectrumSize = 0; Float32List _spectrum = Float32List(0); Timer? _timer;
+  final List<double> _smooth = []; double _smoothMax = 0.0;
+  final List<double> _peaks = [];
+
+  @override void initState() { super.initState(); unawaited(_initEngine()); }
+
+  Future<void> _initEngine() async {
+    try {
+      _engine = EngineBridge();
+      final v = fromCString(_engine!.engineVersion());
+      setState(() => _status = 'Engine: $v');
+      await Future.delayed(const Duration(seconds: 1));
+      _startCapture();
+    } catch (e) { setState(() => _status = 'Error: $e'); }
+  }
+
+  void _startCapture() {
+    if (_engine == null) return;
+    const sr=48000, ch=2, bf=480, nf=16384, sp=512;
+    final r = _engine!.engineStartCapture(sr,ch,bf,nf,sp);
+    if (r != 0) { final e = _engine!.engineLastError(); setState(() => _status = 'Failed: ${e != nullptr ? fromCString(e) : "code $r"}'); return; }
+    _spectrumSize = _engine!.engineGetSpectrumSize(); _spectrum = Float32List(_spectrumSize); _capturing = true;
+    setState(() => _status = 'Capturing...');
+    _timer = Timer.periodic(const Duration(milliseconds: 16), (_) { _readSpectrum(); });
+  }
+
+  void _readSpectrum() {
+    if (_engine == null || !_capturing) return;
+    try {
+      final ptr = calloc<Float>(_spectrumSize);
+      final n = _engine!.engineReadSpectrum(ptr, _spectrumSize);
+      if (n > 0) {
+        if (_smooth.length != n) { _smooth.clear(); for (var i=0;i<n;i++) _smooth.add(0.0); }
+        for (var i=0;i<n;i++) { final v=ptr[i]; _spectrum[i]=v.isNaN||v.isInfinite?0.0:v; }
+        final tMax = _findMax(_spectrum);
+        if (tMax > 0) { if (_smoothMax <= 0) _smoothMax = tMax; else _smoothMax += (tMax - _smoothMax) * 0.5; }
+        for (var i=0;i<n;i++) { final t=(_spectrum[i]/_smoothMax).clamp(0.0,1.0); final factor = t > _smooth[i] ? 0.4 : 0.7; _smooth[i]+=(t-_smooth[i])*factor; }
+      }
+      calloc.free(ptr);
+      if (mounted) setState(() {});
+    } catch (_) {}
+  }
+
+  void _stopCapture() {
+    if (!_capturing) return;
+    _timer?.cancel(); _timer=null;
+    _engine?.engineStopCapture();
+    _capturing=false; if (mounted) setState(()=>_status='Stopped');
+  }
+
+  double _findMax(Float32List d) { var m=0.0; for (final v in d) { if(v>m) m=v; } return m; }
+
+  @override void dispose() { _stopCapture(); super.dispose(); }
+
+  @override Widget build(BuildContext c) => Scaffold(
+    appBar: AppBar(title: const Text('Audio Spectrum'), actions: [
+      TextButton(onPressed: _capturing?_stopCapture:_startCapture, child: Text(_capturing?'Stop':'Start', style: const TextStyle(color: Colors.white)))
+    ]),
+    body: Column(children: [
+      Padding(padding: const EdgeInsets.all(12), child: Text(_status, style: const TextStyle(fontSize:12,color:Colors.grey))),
+      Expanded(child: _capturing ? Padding(padding: const EdgeInsets.symmetric(horizontal:8), child: CustomPaint(size: Size.infinite, painter: SpectrumPainter(_spectrum, _smooth, _smoothMax, _peaks))) : const Center(child: Text('Press Start to begin', style: TextStyle(color:Colors.white54,fontSize:16)))),
+    ]),
+  );
+}
+
+class SpectrumPainter extends CustomPainter {
+  final Float32List spectrum;
+  final List<double> smooth;
+  final double smoothMax;
+  final List<double> _peaks;
+  SpectrumPainter(this.spectrum, this.smooth, this.smoothMax, this._peaks);
+
+  @override void paint(Canvas canvas, Size size) {
+    if (spectrum.isEmpty || smooth.isEmpty || smooth.length != spectrum.length || smoothMax <= 0) return;
+    if (_peaks.length != spectrum.length) { _peaks.clear(); for (var i=0;i<spectrum.length;i++) _peaks.add(0.0); }
+
+    final bw = size.width / spectrum.length;
+    final path = Path(), fillPath = Path()..moveTo(0, size.height);
+
+    for (var i=0; i<spectrum.length; i++) {
+      final t = smooth[i].clamp(0.0, 1.0);
+      final h = (t*size.height).clamp(1.0, size.height);
+      final x = i*bw+bw/2, y = size.height-h;
+      if (i==0) path.moveTo(x,y);
+      else { final px=(i-1)*bw+bw/2, py=size.height-(smooth[i-1]*size.height).clamp(0.0,size.height), mx=(px+x)/2; path.quadraticBezierTo(px,py,mx,(py+y)/2); path.lineTo(x,y); }
+      fillPath.lineTo(x, y);
+
+      // Peak hold with slow decay
+      if (t > _peaks[i]) _peaks[i] = t; else _peaks[i] *= 0.96;
+    }
+    fillPath..lineTo(size.width, size.height)..close();
+
+    // Rainbow gradient (red→yellow→green→cyan→blue)
+    final colors = <Color>[];
+    for (var i=0; i<=spectrum.length; i++) {
+      final f = i / spectrum.length;
+      colors.add(f < 0.25 ? Color.lerp(Colors.red, Colors.yellow, f/0.25)!
+             : f < 0.5  ? Color.lerp(Colors.yellow, Colors.green, (f-0.25)/0.25)!
+             : f < 0.75 ? Color.lerp(Colors.green, Colors.cyan, (f-0.5)/0.25)!
+             :           Color.lerp(Colors.cyan, Colors.blue, (f-0.75)/0.25)!);
+    }
+    canvas.drawPath(fillPath, Paint()..shader=LinearGradient(begin:Alignment.bottomCenter,end:Alignment.topCenter,colors:colors).createShader(Rect.fromLTWH(0,0,size.width,size.height))..style=PaintingStyle.fill);
+
+    // Glow + line
+    canvas.drawPath(path, Paint()..color=Colors.white.withValues(alpha:0.4)..strokeWidth=2.5..style=PaintingStyle.stroke..maskFilter=const MaskFilter.blur(BlurStyle.normal,6));
+    canvas.drawPath(path, Paint()..color=Colors.white.withValues(alpha:0.8)..strokeWidth=1.2..style=PaintingStyle.stroke);
+
+    // Peak falling dots
+    for (var i=0; i<spectrum.length; i+=4) {
+      final ph = (_peaks[i]*size.height).clamp(0.0, size.height);
+      final x = i*bw+bw/2, y = size.height-ph;
+      canvas.drawCircle(Offset(x, y), 1.5, Paint()..color=Colors.white.withValues(alpha:_peaks[i].clamp(0.0,0.9))..maskFilter=const MaskFilter.blur(BlurStyle.normal,2));
+    }
+  }
+
+  @override bool shouldRepaint(covariant SpectrumPainter o) => true;
+}

@@ -16,31 +16,44 @@
 
 | 层级 | 语言 | 职责 |
 |:---|:---|:---|
-| 算法层 | C11 | 音频采集、FFT计算 |
-| 引擎层 | Rust | 资源管理、GPU计算、Python绑定 |
-| 界面层 | Python | GUI、配置管理、显示 |
+| 算法层 | C11 | 音频采集 (WASAPI)、FFT 数学计算 (kiss_fft) |
+| 引擎层 | Rust | 线程调度、数据管线、状态管理，暴露 C ABI 给上层 |
+| 界面层 | Dart (Flutter) | GPU 渲染 (Impeller)、GUI 控件、跨平台窗口 |
 
 ---
 
 ## 当前状态
 
 - [x] 多语言链路验证通过
-- [x] 自动化构建系统
-- [ ] WASAPI 音频采集
-- [ ] FFT 频谱分析
-- [ ] GPU 加速渲染
-- [ ] Dear ImGui 界面
+- [x] xmake + cargo 自动化构建
+- [x] WASAPI Loopback 音频采集
+- [x] FFT 频谱分析 (fft_processor.c)
+- [x] dart:ffi 绑定 (Dart ↔ Rust 链路打通)
+- [ ] Rust 引擎管线 (采集→FFT→输出)
+- [ ] Flutter 频谱渲染
+- [ ] 跨平台音频后端 (macOS/Linux)
 
 ---
 
-## 构建指南
+## 构建 & 运行
+
+### 1. 构建引擎
 
 ```powershell
-py -3.11 -m pip install numpy dearpygui moderngl glfw pybind11-stubgen
-xmake f -c -y
-xmake build linktest
-xmake run linktest
+# 自动使用 MinGW GCC（xmake.lua 已写死平台 + 工具链）
+xmake build engine
 ```
+
+产物：`rust_engine/target/x86_64-pc-windows-gnu/release/spectrum_engine.dll`
+
+### 2. 启动 Flutter
+
+```powershell
+cd spectrum_ui
+flutter run -d windows
+```
+
+> `flutter run` 为持续运行模式，支持 hot reload，按 `q` 退出。
 
 ---
 
