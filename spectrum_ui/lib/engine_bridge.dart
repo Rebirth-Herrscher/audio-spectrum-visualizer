@@ -53,16 +53,6 @@ class EngineBridge {
 
   // ---- 函数指针 ----
   late final EngineVersionFunc engineVersion;
-
-  late final EngineFftCreateFunc engineFftCreate;
-  late final EngineFftDestroyFunc engineFftDestroy;
-  late final EngineFftExecuteFunc engineFftExecute;
-  late final EngineFftMagnitudeFunc engineFftMagnitude;
-
-  late final EngineLogMapCreateFunc engineLogMapCreate;
-  late final EngineLogMapDestroyFunc engineLogMapDestroy;
-  late final EngineLogMapApplyFunc engineLogMapApply;
-
   // Pipeline
   late final EngineStartCaptureFunc engineStartCapture;
   late final EngineStopCaptureFunc engineStopCapture;
@@ -73,15 +63,6 @@ class EngineBridge {
 
   void _bindFunctions() {
     engineVersion = _dylib.lookupFunction<EngineVersionNative, EngineVersionFunc>('engine_version');
-
-    engineFftCreate  = _dylib.lookupFunction<EngineFftCreateNative, EngineFftCreateFunc>('engine_fft_create');
-    engineFftDestroy = _dylib.lookupFunction<EngineFftDestroyNative, EngineFftDestroyFunc>('engine_fft_destroy');
-    engineFftExecute = _dylib.lookupFunction<EngineFftExecuteNative, EngineFftExecuteFunc>('engine_fft_execute');
-    engineFftMagnitude = _dylib.lookupFunction<EngineFftMagnitudeNative, EngineFftMagnitudeFunc>('engine_fft_magnitude');
-
-    engineLogMapCreate  = _dylib.lookupFunction<EngineLogMapCreateNative, EngineLogMapCreateFunc>('engine_log_map_create');
-    engineLogMapDestroy = _dylib.lookupFunction<EngineLogMapDestroyNative, EngineLogMapDestroyFunc>('engine_log_map_destroy');
-    engineLogMapApply   = _dylib.lookupFunction<EngineLogMapApplyNative, EngineLogMapApplyFunc>('engine_log_map_apply');
 
     engineStartCapture = _dylib.lookupFunction<EngineStartCaptureNative, EngineStartCaptureFunc>('engine_start_capture');
     engineStopCapture = _dylib.lookupFunction<EngineStopCaptureNative, EngineStopCaptureFunc>('engine_stop_capture');
@@ -139,27 +120,6 @@ Float32List fromNativeFloat32(Pointer<Float> ptr, int length) {
 
 typedef EngineVersionNative = Pointer<Int8> Function();
 typedef EngineVersionFunc = Pointer<Int8> Function();
-
-typedef EngineFftCreateNative = Pointer<Void> Function(Uint32 nfft);
-typedef EngineFftCreateFunc = Pointer<Void> Function(int nfft);
-
-typedef EngineFftDestroyNative = Void Function(Pointer<Void> plan);
-typedef EngineFftDestroyFunc = void Function(Pointer<Void> plan);
-
-typedef EngineFftExecuteNative = Void Function(Pointer<Void> plan, Pointer<Float> input, Pointer<KissFftCpx> output);
-typedef EngineFftExecuteFunc = void Function(Pointer<Void> plan, Pointer<Float> input, Pointer<KissFftCpx> output);
-
-typedef EngineFftMagnitudeNative = Void Function(Pointer<KissFftCpx> fftOutput, Pointer<Float> magnitude, Uint32 nfft);
-typedef EngineFftMagnitudeFunc = void Function(Pointer<KissFftCpx> fftOutput, Pointer<Float> magnitude, int nfft);
-
-typedef EngineLogMapCreateNative = Pointer<Uint32> Function(Uint32 nfft, Uint32 screenPoints, Float sampleRate);
-typedef EngineLogMapCreateFunc = Pointer<Uint32> Function(int nfft, int screenPoints, double sampleRate);
-
-typedef EngineLogMapDestroyNative = Void Function(Pointer<Uint32> map);
-typedef EngineLogMapDestroyFunc = void Function(Pointer<Uint32> map);
-
-typedef EngineLogMapApplyNative = Void Function(Pointer<Float> magnitude, Pointer<Uint32> map, Pointer<Float> output, Uint32 screenPoints);
-typedef EngineLogMapApplyFunc = void Function(Pointer<Float> magnitude, Pointer<Uint32> map, Pointer<Float> output, int screenPoints);
 
 // Pipeline
 

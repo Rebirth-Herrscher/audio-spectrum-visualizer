@@ -31,7 +31,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
       _engine = EngineBridge();
       final v = fromCString(_engine!.engineVersion());
       setState(() => _status = 'Engine: $v');
-      await Future.delayed(const Duration(seconds: 1));
+      await Future<void>.delayed(const Duration(seconds: 1));
       _startCapture();
     } catch (e) { setState(() => _status = 'Error: $e'); }
   }
@@ -52,10 +52,12 @@ class _SpectrumPageState extends State<SpectrumPage> {
       final ptr = calloc<Float>(_spectrumSize);
       final n = _engine!.engineReadSpectrum(ptr, _spectrumSize);
       if (n > 0) {
-        if (_smooth.length != n) { _smooth.clear(); for (var i=0;i<n;i++) _smooth.add(0.0); }
+        if (_smooth.length != n) { _smooth.clear(); for (var i=0;i<n;i++) { _smooth.add(0.0); } }
         for (var i=0;i<n;i++) { final v=ptr[i]; _spectrum[i]=v.isNaN||v.isInfinite?0.0:v; }
         final tMax = _findMax(_spectrum);
-        if (tMax > 0) { if (_smoothMax <= 0) _smoothMax = tMax; else _smoothMax += (tMax - _smoothMax) * 0.5; }
+        if (tMax > 0) {
+          if (_smoothMax <= 0) { _smoothMax = tMax; } else { _smoothMax += (tMax - _smoothMax) * 0.5; }
+        }
         for (var i=0;i<n;i++) { final t=(_spectrum[i]/_smoothMax).clamp(0.0,1.0); final factor = t > _smooth[i] ? 0.25 : 0.5; _smooth[i]+=(t-_smooth[i])*factor; }
       }
       calloc.free(ptr);
@@ -94,7 +96,7 @@ class SpectrumPainter extends CustomPainter {
 
   @override void paint(Canvas canvas, Size size) {
     if (spectrum.isEmpty || smooth.isEmpty || smooth.length != spectrum.length || smoothMax <= 0) return;
-    if (_peaks.length != spectrum.length) { _peaks.clear(); for (var i=0;i<spectrum.length;i++) _peaks.add(0.0); }
+    if (_peaks.length != spectrum.length) { _peaks.clear(); for (var i=0;i<spectrum.length;i++) { _peaks.add(0.0); } }
 
     final bw = size.width / spectrum.length;
     final path = Path(), fillPath = Path()..moveTo(0, size.height);
@@ -103,12 +105,12 @@ class SpectrumPainter extends CustomPainter {
       final t = smooth[i].clamp(0.0, 1.0);
       final h = (t*size.height).clamp(1.0, size.height);
       final x = i*bw+bw/2, y = size.height-h;
-      if (i==0) path.moveTo(x,y);
+      if (i==0) { path.moveTo(x,y); }
       else { final px=(i-1)*bw+bw/2, py=size.height-(smooth[i-1]*size.height).clamp(0.0,size.height), mx=(px+x)/2; path.quadraticBezierTo(px,py,mx,(py+y)/2); path.lineTo(x,y); }
       fillPath.lineTo(x, y);
 
       // Peak hold with slow decay
-      if (t > _peaks[i]) _peaks[i] = t; else _peaks[i] *= 0.98;
+      if (t > _peaks[i]) { _peaks[i] = t; } else { _peaks[i] *= 0.98; }
     }
     fillPath..lineTo(size.width, size.height)..close();
 

@@ -41,13 +41,6 @@ fn set_spectrum(data: Vec<f32>) {
 }
 
 #[unsafe(no_mangle)] pub extern "C" fn engine_version() -> *const std::os::raw::c_char { static V: &CStr = c"spectrum_engine_v0.1.0"; V.as_ptr() }
-#[unsafe(no_mangle)] pub extern "C" fn engine_fft_create(_: u32) -> *mut std::ffi::c_void { std::ptr::null_mut() }
-#[unsafe(no_mangle)] pub extern "C" fn engine_fft_destroy(_: *mut std::ffi::c_void) {}
-#[unsafe(no_mangle)] pub extern "C" fn engine_fft_execute(_: *const std::ffi::c_void, _: *const f32, _: *mut KissFftCpx) {}
-#[unsafe(no_mangle)] pub extern "C" fn engine_fft_magnitude(_: *const KissFftCpx, _: *mut f32, _: u32) {}
-#[unsafe(no_mangle)] pub extern "C" fn engine_log_map_create(_: u32, _: u32, _: f32) -> *mut u32 { std::ptr::null_mut() }
-#[unsafe(no_mangle)] pub extern "C" fn engine_log_map_destroy(_: *mut u32) {}
-#[unsafe(no_mangle)] pub extern "C" fn engine_log_map_apply(_: *const f32, _: *const u32, _: *mut f32, _: u32) {}
 #[unsafe(no_mangle)] pub extern "C" fn engine_get_spectrum_size() -> i32 { SPECTRUM_LEN.load(Ordering::Acquire) as i32 }
 #[unsafe(no_mangle)] pub extern "C" fn engine_get_sample_rate() -> i32 { 48000 }
 #[unsafe(no_mangle)] pub extern "C" fn engine_last_error() -> *const std::os::raw::c_char { std::ptr::null() }
