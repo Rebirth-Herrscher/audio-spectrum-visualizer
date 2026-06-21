@@ -64,3 +64,4 @@ spectrum_ui/windows/flutter/ephemeral/
 
 compile_commands.json
 .reasonix/
+release.ps1
