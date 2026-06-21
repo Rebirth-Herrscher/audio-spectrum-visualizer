@@ -57,6 +57,7 @@ class EngineBridge {
   late final EngineStartCaptureFunc engineStartCapture;
   late final EngineStopCaptureFunc engineStopCapture;
   late final EngineReadSpectrumFunc engineReadSpectrum;
+  late final EngineReadSpectrumFunc engineReadSpectrumLinear;
   late final EngineGetSpectrumSizeFunc engineGetSpectrumSize;
   late final EngineGetSampleRateFunc engineGetSampleRate;
   late final EngineLastErrorFunc engineLastError;
@@ -67,6 +68,7 @@ class EngineBridge {
     engineStartCapture = _dylib.lookupFunction<EngineStartCaptureNative, EngineStartCaptureFunc>('engine_start_capture');
     engineStopCapture = _dylib.lookupFunction<EngineStopCaptureNative, EngineStopCaptureFunc>('engine_stop_capture');
     engineReadSpectrum = _dylib.lookupFunction<EngineReadSpectrumNative, EngineReadSpectrumFunc>('engine_read_spectrum');
+    engineReadSpectrumLinear = _dylib.lookupFunction<EngineReadSpectrumNative, EngineReadSpectrumFunc>('engine_read_spectrum_linear');
     engineGetSpectrumSize = _dylib.lookupFunction<EngineGetSpectrumSizeNative, EngineGetSpectrumSizeFunc>('engine_get_spectrum_size');
     engineGetSampleRate = _dylib.lookupFunction<EngineGetSampleRateNative, EngineGetSampleRateFunc>('engine_get_sample_rate');
     engineLastError = _dylib.lookupFunction<EngineLastErrorNative, EngineLastErrorFunc>('engine_last_error');

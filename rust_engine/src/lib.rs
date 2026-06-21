@@ -31,11 +31,11 @@ unsafe extern "C" {
 
 static RUNNING: AtomicBool = AtomicBool::new(false);
 static THREAD_DONE: AtomicBool = AtomicBool::new(true);
-static SPECTRUM_PTR: AtomicPtr<Vec<f32>> = AtomicPtr::new(std::ptr::null_mut());
+static SPECTRUM_PTR: AtomicPtr<(Vec<f32>, Vec<f32>)> = AtomicPtr::new(std::ptr::null_mut());
 static SPECTRUM_LEN: AtomicU32 = AtomicU32::new(0);
 
-fn set_spectrum(data: Vec<f32>) {
-    let ptr = Arc::into_raw(Arc::new(data)) as *mut Vec<f32>;
+fn set_spectrum(log: Vec<f32>, lin: Vec<f32>) {
+    let ptr = Arc::into_raw(Arc::new((log, lin))) as *mut (Vec<f32>, Vec<f32>);
     let old = SPECTRUM_PTR.swap(ptr, Ordering::Release);
     if !old.is_null() { unsafe { drop(Arc::from_raw(old)); } }
 }
@@ -99,7 +99,7 @@ pub extern "C" fn engine_start_capture(sr: u32, ch: u32, bf: u32, nfft: u32, sp:
                 for i in 1..sp as usize - 1 {
                     spec[i] = prev[i-1] * 0.25 + prev[i] * 0.5 + prev[i+1] * 0.25;
                 }
-                set_spectrum(spec.clone());
+                set_spectrum(spec.clone(), mag.iter().take(sp as usize).copied().collect());
             }
             if rp >= nfft as usize { rp = 0; }
         }
@@ -121,7 +121,19 @@ pub extern "C" fn engine_start_capture(sr: u32, ch: u32, bf: u32, nfft: u32, sp:
     let ptr = SPECTRUM_PTR.load(Ordering::Acquire);
     if ptr.is_null() { return 0; }
     let arc = unsafe { Arc::from_raw(ptr) };
-    let data = &*arc;
+    let data = &(*arc).0;
+    let n = (data.len() as i32).min(len);
+    unsafe { std::ptr::copy_nonoverlapping(data.as_ptr(), buffer, n as usize); }
+    let _ = Arc::into_raw(arc);
+    n
+}
+
+#[unsafe(no_mangle)] pub extern "C" fn engine_read_spectrum_linear(buffer: *mut f32, len: i32) -> i32 {
+    if !RUNNING.load(Ordering::Acquire) { return -1; }
+    let ptr = SPECTRUM_PTR.load(Ordering::Acquire);
+    if ptr.is_null() { return 0; }
+    let arc = unsafe { Arc::from_raw(ptr) };
+    let data = &(*arc).1;
     let n = (data.len() as i32).min(len);
     unsafe { std::ptr::copy_nonoverlapping(data.as_ptr(), buffer, n as usize); }
     let _ = Arc::into_raw(arc);
