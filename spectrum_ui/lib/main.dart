@@ -87,9 +87,12 @@ class _SpectrumPageState extends State<SpectrumPage> {
 
   void _showSettings() {
     unawaited(showModalBottomSheet<void>(
+      backgroundColor: Colors.transparent,
       context: context,
-      builder: (_) => StatefulBuilder(builder: (ctx, setSheet) => Padding(
-        padding: const EdgeInsets.all(20),
+      builder: (_) => StatefulBuilder(builder: (ctx, setSheet) => Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: const Color(0xFF1A1A2E).withValues(alpha: 0.95), borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('设置', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
@@ -133,19 +136,51 @@ class _SpectrumPageState extends State<SpectrumPage> {
   @override void dispose() { _stopCapture(); super.dispose(); }
 
   @override Widget build(BuildContext c) => Scaffold(
-    appBar: AppBar(
-      title: const Text('Spectrum'),
-      actions: [
-        IconButton(icon: const Icon(Icons.settings), tooltip: '设置', onPressed: () => _showSettings()),
-        const SizedBox(width: 4),
-        TextButton(onPressed: _capturing?_stopCapture:_startCapture, child: Text(_capturing?'Stop':'Start', style: const TextStyle(color: Colors.white))),
-      ],
-    ),
-    body: Column(children: [
-      Padding(padding: const EdgeInsets.all(12), child: Text(_status, style: const TextStyle(fontSize:12,color:Colors.grey))),
-      Expanded(child: _capturing ? Padding(padding: const EdgeInsets.symmetric(horizontal:8), child: CustomPaint(size: Size.infinite, painter: SpectrumPainter(_spectrum, _smooth, _smoothMax, _peaks, _style, _theme, _glow))) : const Center(child: Text('Press Start to begin', style: TextStyle(color:Colors.white54,fontSize:16)))),
+    backgroundColor: Colors.black,
+    body: Stack(children: [
+      // Themed background gradient
+      Positioned.fill(child: CustomPaint(painter: _BgPainter(_theme))),
+      // Spectrum
+      if (_capturing)
+        Positioned.fill(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: CustomPaint(painter: SpectrumPainter(_spectrum, _smooth, _smoothMax, _peaks, _style, _theme, _glow))))
+      else
+        const Center(child: Text('Press Start', style: TextStyle(color: Colors.white24, fontSize: 24, fontWeight: FontWeight.w300))),
+      // Floating controls
+      Positioned(right: 16, top: 48, child: _glassButton(Icons.settings, () => _showSettings())),
+      Positioned(left: 16, top: 48, child: _statusText()),
+      Positioned(bottom: 36, left: 0, right: 0, child: Center(child: _pillButton(_capturing ? 'Stop' : 'Start', _capturing ? _stopCapture : _startCapture))),
     ]),
   );
+
+  Widget _statusText() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12)),
+      child: Text(_status, style: const TextStyle(fontSize: 11, color: Colors.white30, fontWeight: FontWeight.w300)),
+    );
+  }
+
+  Widget _glassButton(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36, height: 36,
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(18)),
+        child: Icon(icon, color: Colors.white.withValues(alpha: 0.4), size: 18),
+      ),
+    );
+  }
+
+  Widget _pillButton(String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(28)),
+        child: Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14, fontWeight: FontWeight.w400, letterSpacing: 2)),
+      ),
+    );
+  }
 }
 
 class SpectrumPainter extends CustomPainter {
@@ -360,3 +395,16 @@ class SpectrumPainter extends CustomPainter {
 }
 
 class _Particle { double x, y, vx, speed, life; _Particle({required this.x, required this.y, required this.vx, required this.speed, required this.life}); }
+
+class _BgPainter extends CustomPainter {
+  final ColorTheme theme;
+  _BgPainter(this.theme);
+  @override void paint(Canvas canvas, Size size) {
+    final c = SpectrumPainter._gradient(theme)[0].withValues(alpha: 0.06);
+    canvas.drawRect(Offset.zero & size, Paint()..shader=RadialGradient(
+      center: const Alignment(0.5, 0.7), radius: 1.5,
+      colors: [c, Colors.transparent],
+    ).createShader(Rect.fromLTWH(0,0,size.width,size.height)));
+  }
+  @override bool shouldRepaint(covariant _BgPainter o) => o.theme != theme;
+}
