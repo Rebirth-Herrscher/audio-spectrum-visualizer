@@ -1,6 +1,6 @@
 # 音频频谱可视化器 (Audio Spectrum Visualizer)
 
-实时音频频谱分析工具 —— 采集系统音频，FFT 频谱分析，GPU 渲染。
+实时音频频谱可视化工具 —— 采集系统音频，FFT 频谱分析，Flutter Canvas 渲染。
 
 ---
 
@@ -50,12 +50,19 @@ flutter run -d windows
 
 ## 依赖
 
+### Rust (`rust_engine/Cargo.toml`)
+
 | 库 | 用途 |
 |:---|:---|
 | [realfft](https://crates.io/crates/realfft) | 实数 FFT |
 | [arc-swap](https://crates.io/crates/arc-swap) | 无锁 Arc 原子交换 |
 | [windows](https://crates.io/crates/windows) | WASAPI COM 接口 |
-| [ffi](https://pub.dev/packages/ffi) | Dart FFI 绑定 |
+
+### Dart (`spectrum_ui/pubspec.yaml`)
+
+| 库 | 用途 |
+|:---|:---|
+| [ffi](https://pub.dev/packages/ffi) | FFI 绑定 |
 
 ---
 
