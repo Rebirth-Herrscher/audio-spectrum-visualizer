@@ -1,8 +1,5 @@
 import 'dart:ffi';
 import 'dart:io';
-import 'dart:typed_data';
-
-import 'package:ffi/ffi.dart';
 
 /// FFI 绑定：加载 spectrum_engine.dll 并提供类型安全的 Dart 接口
 class EngineBridge {
@@ -46,7 +43,7 @@ class EngineBridge {
     stderr.writeln('[EngineBridge] tried: ${candidates.join(", ")}');
     throw Exception(
       'Cannot find spectrum_engine.dll.\n'
-      'Make sure you ran: xmake build engine\n'
+      'Make sure you ran: cargo build --release --manifest-path rust_engine/Cargo.toml\n'
       'Tried:\n${candidates.map((p) => "  - $p").join("\n")}',
     );
   }
@@ -75,16 +72,6 @@ class EngineBridge {
   }
 }
 
-// ---- C 结构体 ----
-
-/// 对应 C 的 kiss_fft_cpx { float r; float i; }
-final class KissFftCpx extends Struct {
-  @Float()
-  external double r;
-  @Float()
-  external double i;
-}
-
 // ---- C 字符串 ----
 
 String fromCString(Pointer<Int8> ptr) {
@@ -97,27 +84,6 @@ String fromCString(Pointer<Int8> ptr) {
   return String.fromCharCodes(units);
 }
 
-// ---- 内存辅助 ----
-
-/// 分配 Float32 数组并写入数据，返回 native 指针（调用者负责 free）
-Pointer<Float> toNativeFloat32(Float32List data) {
-  final ptr = calloc<Float>(data.length);
-  for (var i = 0; i < data.length; i++) {
-    ptr[i] = data[i];
-  }
-  return ptr;
-}
-
-/// 将 native Float32 数组读回 Dart，释放 native 内存
-Float32List fromNativeFloat32(Pointer<Float> ptr, int length) {
-  final list = Float32List(length);
-  for (var i = 0; i < length; i++) {
-    list[i] = ptr[i];
-  }
-  calloc.free(ptr);
-  return list;
-}
-
 // ---- FFI 类型定义 ----
 
 typedef EngineVersionNative = Pointer<Int8> Function();
@@ -125,8 +91,8 @@ typedef EngineVersionFunc = Pointer<Int8> Function();
 
 // Pipeline
 
-typedef EngineStartCaptureNative = Int32 Function(Uint32 sampleRate, Uint32 channels, Uint32 bufferFrames, Uint32 nfft, Uint32 screenPoints);
-typedef EngineStartCaptureFunc = int Function(int sampleRate, int channels, int bufferFrames, int nfft, int screenPoints);
+typedef EngineStartCaptureNative = Int32 Function(Uint32 nfft, Uint32 screenPoints);
+typedef EngineStartCaptureFunc = int Function(int nfft, int screenPoints);
 
 typedef EngineStopCaptureNative = Void Function();
 typedef EngineStopCaptureFunc = void Function();

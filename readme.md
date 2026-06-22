@@ -9,7 +9,7 @@
 | 层级 | 技术 |
 |:---|:---|
 | 引擎 | Rust — `windows` crate WASAPI 采集, `realfft` FFT, `arc-swap` 无锁快照 |
-| 界面 | Dart (Flutter) — Canvas 渲染, 4 种样式 x 4 套配色, 拖尾/光晕/粒子 |
+| 界面 | Dart (Flutter) — Canvas 渲染, 5 种样式 x 4 套配色, 拖尾/光晕/粒子 |
 
 ---
 
@@ -30,8 +30,7 @@
 ### 环境
 
 - Rust 1.82+ (MSVC target)
-- Visual Studio 2022+ (MSVC 工具链)
-- Flutter 3.x
+- Flutter 3.x (Windows desktop)
 
 ### 构建引擎
 

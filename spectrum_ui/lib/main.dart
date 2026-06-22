@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'engine_bridge.dart';
 
 void main() {
@@ -31,17 +32,20 @@ class SpectrumPage extends StatefulWidget {
   State<SpectrumPage> createState() => _SpectrumPageState();
 }
 
-class _SpectrumPageState extends State<SpectrumPage> {
+class _SpectrumPageState extends State<SpectrumPage>
+    with SingleTickerProviderStateMixin {
   EngineBridge? _engine;
   bool _capturing = false;
   String _status = 'Initializing...';
   int _spectrumSize = 0;
   Float32List _spectrum = Float32List(0);
   Pointer<Float>? _ffiBuf;
-  Timer? _timer;
+  Ticker? _ticker;
   final List<double> _smooth = [];
   double _smoothMax = 0.0;
   final List<double> _peaks = [];
+  final List<(Path, double)> _trails = [];
+  final List<_Particle> _particles = [];
   double _glow = 0.0;
   SpectrumStyle _style = SpectrumStyle.mirror;
   ColorTheme _theme = ColorTheme.rainbow;
@@ -49,8 +53,11 @@ class _SpectrumPageState extends State<SpectrumPage> {
   @override
   void initState() {
     super.initState();
+    _ticker = createTicker(_onTick);
     unawaited(_initEngine());
   }
+
+  void _onTick(Duration elapsed) => _readSpectrum();
 
   Future<void> _initEngine() async {
     try {
@@ -65,8 +72,8 @@ class _SpectrumPageState extends State<SpectrumPage> {
   void _startCapture() {
     if (_engine == null || _capturing) return;
     try {
-      const sr = 48000, ch = 2, bf = 480, nf = 16384, sp = 512;
-      final r = _engine!.engineStartCapture(sr, ch, bf, nf, sp);
+      const nf = 16384, sp = 512;
+      final r = _engine!.engineStartCapture(nf, sp);
       if (r != 0) {
         final e = _engine!.engineLastError();
         setState(() => _status = 'Failed: ${e != nullptr ? fromCString(e) : "code $r"}');
@@ -77,7 +84,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
       _ffiBuf = calloc<Float>(_spectrumSize);
       _capturing = true;
       setState(() => _status = 'Capturing...');
-      _timer = Timer.periodic(const Duration(milliseconds: 8), (_) { _readSpectrum(); });
+      unawaited(_ticker!.start());
     } catch (e) {
       setState(() => _status = 'Error: $e');
     }
@@ -143,8 +150,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
 
   void _stopCapture() {
     if (!_capturing) return;
-    _timer?.cancel();
-    _timer = null;
+    _ticker?.stop();
     _engine?.engineStopCapture();
     _capturing = false;
     if (mounted) setState(() => _status = 'Stopped');
@@ -258,6 +264,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
   @override
   void dispose() {
     _stopCapture();
+    _ticker?.dispose();
     if (_ffiBuf != null) { calloc.free(_ffiBuf!); }
     super.dispose();
   }
@@ -283,6 +290,8 @@ class _SpectrumPageState extends State<SpectrumPage> {
                   _style,
                   _theme,
                   _glow,
+                  _trails,
+                  _particles,
                 ),
               ),
             ),
@@ -384,8 +393,8 @@ class SpectrumPainter extends CustomPainter {
   final SpectrumStyle _style;
   final ColorTheme _theme;
   final double _glow;
-  final List<(Path, double)> _trails = [];
-  final List<_Particle> _particles = [];
+  final List<(Path, double)> _trails;
+  final List<_Particle> _particles;
   SpectrumPainter(
     this.spectrum,
     this.smooth,
@@ -394,6 +403,8 @@ class SpectrumPainter extends CustomPainter {
     this._style,
     this._theme,
     this._glow,
+    this._trails,
+    this._particles,
   );
 
   static Color _lerpPalette(List<Color> pal, double t) {

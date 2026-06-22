@@ -1,31 +1,15 @@
 # ========== 构建产物 ==========
 
-# xmake
-build/
-.xmake/
-.xmake/**
-
 # Rust
 rust_engine/target/
 rust_engine/Cargo.lock
 **/*.rs.bk
 **/*.pdb
 
-# Python
-python_ui/__pycache__/
-python_ui/*.pyc
-python_ui/*.pyo
-python_ui/*.pyd
-**/__pycache__/
-**/*.egg-info/
-**/.pytest_cache/
-
 # ========== IDE ==========
 
 # VS Code
 .vscode/*
-!.vscode/c_cpp_properties.json
-!.vscode/compile_commands.json
 
 # Visual Studio
 *.suo
@@ -52,17 +36,10 @@ $RECYCLE.BIN/
 *~
 .DS_Store
 
-# ========== 输出文件（可选保留） ==========
-
-# 如果需要分发预编译的 pyd，注释掉下面这行
-# python_ui/spectrum_engine.pyd
-
 # Flutter
 spectrum_ui/build/
 spectrum_ui/.dart_tool/
 spectrum_ui/windows/flutter/ephemeral/
 
-compile_commands.json
 .cache/
 .reasonix/
-release.ps1

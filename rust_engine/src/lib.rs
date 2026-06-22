@@ -6,6 +6,7 @@ use std::panic::catch_unwind;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use windows::Win32::Foundation::{HANDLE, WAIT_OBJECT_0};
 use windows::Win32::Media::Audio::*;
+use windows::core::GUID;
 use windows::Win32::System::Com::*;
 use windows::Win32::System::Threading::{
     CREATE_EVENT, CREATE_EVENT_INITIAL_SET, CreateEventExW, EVENT_MODIFY_STATE,
@@ -18,6 +19,7 @@ static RUNNING: AtomicBool = AtomicBool::new(false);
 static THREAD_DONE: AtomicBool = AtomicBool::new(true);
 static SPECTRUM: ArcSwapOption<(Vec<f32>, Vec<f32>)> = ArcSwapOption::const_empty();
 static SPECTRUM_LEN: AtomicU32 = AtomicU32::new(0);
+static SAMPLE_RATE: AtomicU32 = AtomicU32::new(48000);
 static LAST_ERROR: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
 
 fn publish(log: Vec<f32>, lin: Vec<f32>) {
@@ -79,7 +81,8 @@ impl RingBuf {
 
 fn build_log_map(nfft: usize, sp: usize, sr: f32) -> Vec<usize> {
     let nb = nfft / 2 + 1;
-    let ny = sr / 2.0;
+    // 终点取 nyquist 与人耳上限 20kHz 的较小值, 高采样率下聚焦可听范围
+    let ny = (sr / 2.0).min(20000.0);
     let lm = (20.0f32).ln();
     let lx = ny.ln();
     let iv = 1.0 / (sp - 1) as f32;
@@ -97,30 +100,12 @@ pub extern "C" fn engine_version() -> *const std::os::raw::c_char {
     V.as_ptr()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn engine_fft_create(_: u32) -> *mut std::ffi::c_void {
-    std::ptr::null_mut()
-}
-#[unsafe(no_mangle)]
-pub extern "C" fn engine_fft_destroy(_: *mut std::ffi::c_void) {}
-#[unsafe(no_mangle)]
-pub extern "C" fn engine_fft_execute(_: *const std::ffi::c_void, _: *const f32, _: *mut f32) {}
-#[unsafe(no_mangle)]
-pub extern "C" fn engine_fft_magnitude(_: *const f32, _: *mut f32, _: u32) {}
-#[unsafe(no_mangle)]
-pub extern "C" fn engine_log_map_create(_: u32, _: u32, _: f32) -> *mut u32 {
-    std::ptr::null_mut()
-}
-#[unsafe(no_mangle)]
-pub extern "C" fn engine_log_map_destroy(_: *mut u32) {}
-#[unsafe(no_mangle)]
-pub extern "C" fn engine_log_map_apply(_: *const f32, _: *const u32, _: *mut f32, _: u32) {}
-#[unsafe(no_mangle)]
 pub extern "C" fn engine_get_spectrum_size() -> i32 {
     SPECTRUM_LEN.load(Ordering::Acquire) as i32
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn engine_get_sample_rate() -> i32 {
-    48000
+    SAMPLE_RATE.load(Ordering::Acquire) as i32
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn engine_last_error() -> *const std::os::raw::c_char {
@@ -136,6 +121,7 @@ struct WasapiCtx {
     ac: IAudioClient,
     cc: IAudioCaptureClient,
     ch: u16,
+    sr: u32,
     _hev: HANDLE,
 }
 impl Drop for WasapiCtx {
@@ -153,6 +139,31 @@ fn wasapi_init(ms: u32) -> Option<WasapiCtx> {
     let ac: IAudioClient = unsafe { dv.Activate::<IAudioClient>(CLSCTX_ALL, None) }.ok()?;
     let pf = unsafe { ac.GetMixFormat() }.ok()?;
     let ch = unsafe { (&*pf).nChannels };
+    let sr = unsafe { (&*pf).nSamplesPerSec };
+    // Shared mode mix format 应为 IEEE float 32-bit
+    // 可能是 WAVE_FORMAT_IEEE_FLOAT(3) 直接格式, 或 WAVE_FORMAT_EXTENSIBLE(0xFFFE) + IEEE_FLOAT SubFormat
+    let tag = unsafe { (&*pf).wFormatTag };
+    let bits = unsafe { (&*pf).wBitsPerSample };
+    const IEEE_FLOAT_SUBTYPE: GUID = GUID::from_values(
+        0x00000003,
+        0x0000,
+        0x0010,
+        [0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71],
+    );
+    let is_float = match tag {
+        3 => true,
+        0xFFFE => {
+            // WAVEFORMATEXTENSIBLE 是 packed, 字段须用 read_unaligned 读取
+            let ext = pf as *const WAVEFORMATEXTENSIBLE;
+            let sub = unsafe { std::ptr::addr_of!((*ext).SubFormat).read_unaligned() };
+            sub == IEEE_FLOAT_SUBTYPE
+        }
+        _ => false,
+    };
+    if !is_float || bits != 32 {
+        set_error("unsupported mix format: need IEEE float 32-bit");
+        return None;
+    }
     unsafe {
         ac.Initialize(
             AUDCLNT_SHAREMODE_SHARED,
@@ -180,6 +191,7 @@ fn wasapi_init(ms: u32) -> Option<WasapiCtx> {
         ac,
         cc,
         ch,
+        sr,
         _hev: he,
     })
 }
@@ -210,7 +222,7 @@ fn pull(ctx: &WasapiCtx, ring: &mut RingBuf) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn engine_start_capture(sr: u32, _ch: u32, _bf: u32, nfft: u32, sp: u32) -> i32 {
+pub extern "C" fn engine_start_capture(nfft: u32, sp: u32) -> i32 {
     if RUNNING.load(Ordering::Acquire) || !THREAD_DONE.load(Ordering::Acquire) {
         return -1;
     }
@@ -232,7 +244,9 @@ pub extern "C" fn engine_start_capture(sr: u32, _ch: u32, _bf: u32, nfft: u32, s
                 let ctx = match wasapi_init(5) {
                     Some(c) => c,
                     None => {
-                        set_error("WASAPI init failed");
+                        if LAST_ERROR.lock().unwrap().is_empty() {
+                            set_error("WASAPI init failed");
+                        }
                         unsafe {
                             CoUninitialize();
                         }
@@ -242,9 +256,11 @@ pub extern "C" fn engine_start_capture(sr: u32, _ch: u32, _bf: u32, nfft: u32, s
                     }
                 };
                 let hev = ctx._hev;
+                let real_sr = ctx.sr;
+                SAMPLE_RATE.store(real_sr, Ordering::Release);
                 let mut planner = RealFftPlanner::<f32>::new();
                 let r2c = planner.plan_fft_forward(nfft as usize);
-                let lm = build_log_map(nfft as usize, sp as usize, sr as f32);
+                let lm = build_log_map(nfft as usize, sp as usize, real_sr as f32);
                 let win: Vec<f32> = (0..nfft as usize)
                     .map(|i| {
                         0.5 * (1.0
