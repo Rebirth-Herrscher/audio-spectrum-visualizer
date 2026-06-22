@@ -1,5 +1,0 @@
-CompileFlags:
-  Add:
-    - -std=c11
-    - -x
-    - c

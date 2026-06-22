@@ -63,5 +63,6 @@ spectrum_ui/.dart_tool/
 spectrum_ui/windows/flutter/ephemeral/
 
 compile_commands.json
+.cache/
 .reasonix/
 release.ps1

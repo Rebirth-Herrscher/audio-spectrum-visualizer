@@ -37,6 +37,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
   String _status = 'Initializing...';
   int _spectrumSize = 0;
   Float32List _spectrum = Float32List(0);
+  Pointer<Float>? _ffiBuf;
   Timer? _timer;
   final List<double> _smooth = [];
   double _smoothMax = 0.0;
@@ -55,38 +56,37 @@ class _SpectrumPageState extends State<SpectrumPage> {
     try {
       _engine = EngineBridge();
       final v = fromCString(_engine!.engineVersion());
-      setState(() => _status = 'Engine: $v');
-      await Future<void>.delayed(const Duration(seconds: 1));
-      _startCapture();
+      setState(() => _status = 'Engine: $v — click Start');
     } catch (e) {
       setState(() => _status = 'Error: $e');
     }
   }
 
   void _startCapture() {
-    if (_engine == null) return;
-    const sr = 48000, ch = 2, bf = 480, nf = 16384, sp = 512;
-    final r = _engine!.engineStartCapture(sr, ch, bf, nf, sp);
-    if (r != 0) {
-      final e = _engine!.engineLastError();
-      setState(
-        () => _status = 'Failed: ${e != nullptr ? fromCString(e) : "code $r"}',
-      );
-      return;
+    if (_engine == null || _capturing) return;
+    try {
+      const sr = 48000, ch = 2, bf = 480, nf = 16384, sp = 512;
+      final r = _engine!.engineStartCapture(sr, ch, bf, nf, sp);
+      if (r != 0) {
+        final e = _engine!.engineLastError();
+        setState(() => _status = 'Failed: ${e != nullptr ? fromCString(e) : "code $r"}');
+        return;
+      }
+      _spectrumSize = _engine!.engineGetSpectrumSize();
+      _spectrum = Float32List(_spectrumSize);
+      _ffiBuf = calloc<Float>(_spectrumSize);
+      _capturing = true;
+      setState(() => _status = 'Capturing...');
+      _timer = Timer.periodic(const Duration(milliseconds: 8), (_) { _readSpectrum(); });
+    } catch (e) {
+      setState(() => _status = 'Error: $e');
     }
-    _spectrumSize = _engine!.engineGetSpectrumSize();
-    _spectrum = Float32List(_spectrumSize);
-    _capturing = true;
-    setState(() => _status = 'Capturing...');
-    _timer = Timer.periodic(const Duration(milliseconds: 8), (_) {
-      _readSpectrum();
-    });
   }
 
   void _readSpectrum() {
-    if (_engine == null || !_capturing) return;
+    if (_engine == null || !_capturing || _ffiBuf == null) return;
     try {
-      final ptr = calloc<Float>(_spectrumSize);
+      final ptr = _ffiBuf!;
       final useLinear =
           _style == SpectrumStyle.bars ||
           _style == SpectrumStyle.radar ||
@@ -94,6 +94,12 @@ class _SpectrumPageState extends State<SpectrumPage> {
       final n = useLinear
           ? _engine!.engineReadSpectrumLinear(ptr, _spectrumSize)
           : _engine!.engineReadSpectrum(ptr, _spectrumSize);
+      if (n < 0) {
+        final e = _engine!.engineLastError();
+        if (e != nullptr) { setState(() => _status = 'Error: ${fromCString(e)}'); }
+        _stopCapture();
+        return;
+      }
       if (n > 0) {
         if (_smooth.length != n) {
           _smooth.clear();
@@ -101,22 +107,22 @@ class _SpectrumPageState extends State<SpectrumPage> {
             _smooth.add(0.0);
           }
         }
-        for (var i = 0; i < n; i++) {
-          final v = ptr[i];
-          _spectrum[i] = v.isNaN || v.isInfinite ? 0.0 : v;
-        }
+        _spectrum.setAll(0, ptr.asTypedList(n));
+        for (var i = 0; i < n; i++) { if (_spectrum[i].isNaN || _spectrum[i].isInfinite) _spectrum[i] = 0.0; }
         final tMax = _findMax(_spectrum);
-        if (tMax > 0) {
-          if (_smoothMax <= 0) {
-            _smoothMax = tMax;
-          } else {
-            _smoothMax += (tMax - _smoothMax) * 0.5;
+        if (tMax <= 0) {
+          // All zeros — instantly reset smoothing to avoid twitching
+          _smoothMax = 0.0;
+          for (var i = 0; i < n; i++) { _smooth[i] = 0.0; }
+          for (var i = 0; i < _peaks.length; i++) { _peaks[i] = 0.0; }
+        } else {
+          if (_smoothMax <= 0) { _smoothMax = tMax; }
+          else { _smoothMax += (tMax - _smoothMax) * 0.5; }
+          for (var i = 0; i < n; i++) {
+            final t = (_spectrum[i] / _smoothMax).clamp(0.0, 1.0);
+            final factor = t > _smooth[i] ? 0.25 : 0.5;
+            _smooth[i] += (t - _smooth[i]) * factor;
           }
-        }
-        for (var i = 0; i < n; i++) {
-          final t = (_spectrum[i] / _smoothMax).clamp(0.0, 1.0);
-          final factor = t > _smooth[i] ? 0.25 : 0.5;
-          _smooth[i] += (t - _smooth[i]) * factor;
         }
         // Total volume for background glow
         var sum = 0.0;
@@ -129,9 +135,10 @@ class _SpectrumPageState extends State<SpectrumPage> {
         );
         _glow += (vol - _glow) * 0.15;
       }
-      calloc.free(ptr);
       if (mounted) setState(() {});
-    } catch (_) {}
+    } catch (e, _) {
+      // silently ignore timer errors
+    }
   }
 
   void _stopCapture() {
@@ -251,6 +258,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
   @override
   void dispose() {
     _stopCapture();
+    if (_ffiBuf != null) { calloc.free(_ffiBuf!); }
     super.dispose();
   }
 

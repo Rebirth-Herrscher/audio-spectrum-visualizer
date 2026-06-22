@@ -6,41 +6,38 @@
 
 ## 技术架构
 
-| 层级 | 语言 | 职责 |
-|:---|:---|:---|
-| 算法层 | C11 | WASAPI Loopback 采集、kiss_fft 实数 FFT |
-| 引擎层 | Rust | 事件驱动采集线程、滑动窗 FFT 管线、Arc 无锁共享 |
-| 界面层 | Dart (Flutter) | Canvas 渲染、彩虹渐变、峰值保持、60-120fps |
+| 层级 | 技术 |
+|:---|:---|
+| 引擎 | Rust — `windows` crate WASAPI 采集, `realfft` FFT, `arc-swap` 无锁快照 |
+| 界面 | Dart (Flutter) — Canvas 渲染, 4 种样式 x 4 套配色, 拖尾/光晕/粒子 |
 
 ---
 
 ## 特性
 
-- WASAPI 事件驱动采集（5ms buffer，~200Hz 事件频率）
-- 16384 点实数 FFT + Hann 窗（2.93 Hz 分辨率）
-- 对数频率映射 + 高斯平滑
-- 滑动窗 FFT（每次采集都更新频谱）
-- 峰值保持下落 + 彩虹渐变填充
-- Arc + AtomicPtr 无锁线程间数据共享
+- WASAPI Loopback 事件驱动（5ms buffer, pull-until-empty）
+- 16384 点实数 FFT + Hann 窗 + 对数映射 + 高斯平滑
+- Fixed-hop 滑动窗 FFT（hop=8192, 50% overlap）
+- `arc-swap` 无锁频谱发布机制
+- Flutter UI: 经典曲线 / 镜像曲线 / 柱状图 / 圆形雷达 / 径向柱状
+- 4 套配色: 彩虹 / 火焰 / 霓虹 / 冰蓝
+- 拖尾残影 + 背景光晕 + 峰值粒子
 
 ---
 
 ## 构建 & 运行
 
-### 环境要求
+### 环境
 
+- Rust 1.82+ (MSVC target)
 - Visual Studio 2022+ (MSVC 工具链)
-- LLVM/Clang (clang-cl)
-- Rust (x86_64-pc-windows-msvc target)
 - Flutter 3.x
 
 ### 构建引擎
 
 ```powershell
-xmake build engine
+cargo build --release --target x86_64-pc-windows-msvc --manifest-path rust_engine/Cargo.toml
 ```
-
-产物：`rust_engine/target/x86_64-pc-windows-msvc/release/spectrum_engine.dll`
 
 ### 启动
 
@@ -51,18 +48,17 @@ flutter run -d windows
 
 ---
 
-## 性能指标
+## 依赖
 
-| 指标 | 数值 |
+| 库 | 用途 |
 |:---|:---|
-| 频率分辨率 | 2.93 Hz (16384-pt FFT @ 48kHz) |
-| WASAPI buffer | 5ms |
-| FFT 更新率 | ~200 Hz（事件驱动） |
-| 渲染帧率 | 60-120 fps（Dart 定时器可调） |
-| 端到端延迟 | < 15ms |
+| [realfft](https://crates.io/crates/realfft) | 实数 FFT |
+| [arc-swap](https://crates.io/crates/arc-swap) | 无锁 Arc 原子交换 |
+| [windows](https://crates.io/crates/windows) | WASAPI COM 接口 |
+| [ffi](https://pub.dev/packages/ffi) | Dart FFI 绑定 |
 
 ---
 
 ## License
 
-MIT / Apache-2.0 dual license
+MIT / Apache-2.0
