@@ -16,7 +16,7 @@
 ## 特性
 
 - WASAPI Loopback 事件驱动（5ms buffer, pull-until-empty）
-- 16384 点实数 FFT + Hann 窗 + 对数映射 + 高斯平滑
+- 16384 点实数 FFT + Hann 窗 + 对数映射 + 三点加权平滑
 - Fixed-hop 滑动窗 FFT（hop=8192, 50% overlap）
 - `arc-swap` 无锁频谱发布机制
 - Flutter UI: 经典曲线 / 镜像曲线 / 柱状图 / 圆形雷达 / 径向柱状
@@ -29,8 +29,8 @@
 
 ### 环境
 
-- Rust 1.82+ (MSVC target)
-- Flutter 3.x (Windows desktop)
+- Rust 1.85+ (MSVC target, edition 2024)
+- Flutter (Dart 3.11+, Windows desktop)
 
 ### 构建引擎
 
@@ -68,4 +68,4 @@ flutter run -d windows
 
 ## License
 
-MIT / Apache-2.0
+MIT OR Apache-2.0，详见 [LICENSE-MIT](LICENSE-MIT) 与 [LICENSE-APACHE](LICENSE-APACHE)。
