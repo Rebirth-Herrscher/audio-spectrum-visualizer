@@ -40,5 +40,15 @@ fn main() {
     println!("cargo:rustc-link-lib=winmm");
     println!("cargo:rustc-link-lib=mmdevapi");
 
+    // Clang compiler-rt path (auto-detect, needed when linking clang-compiled C with MSVC)
+    if let Ok(output) = std::process::Command::new("clang")
+        .args(["-print-resource-dir"])
+        .output()
+    {
+        let dir = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let libdir = std::path::Path::new(&dir).join("lib");
+        println!("cargo:rustc-link-search=native={}", libdir.display());
+    }
+
     println!("cargo:rerun-if-changed=../c_core/include");
 }
