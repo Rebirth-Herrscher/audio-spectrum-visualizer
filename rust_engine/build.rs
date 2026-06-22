@@ -2,19 +2,23 @@ use std::path::Path;
 
 fn main() {
     let profile = std::env::var("PROFILE").unwrap();
-    let other_profile = if profile == "debug" { "release" } else { "debug" };
+    let other_profile = if profile == "debug" {
+        "release"
+    } else {
+        "debug"
+    };
 
     // 候选搜索路径（按优先级）
     let candidates: Vec<String> = vec![
-        format!("../build/windows/x64/{}", profile),       // 同模式优先
+        format!("../build/windows/x64/{}", profile), // 同模式优先
         format!("../build/windows/x64/{}", other_profile), // 回退到另一模式
-        format!("../build/{}", profile),                   // 旧路径
-        format!("../build/{}", other_profile),             // 旧路径另一模式
+        format!("../build/{}", profile),             // 旧路径
+        format!("../build/{}", other_profile),       // 旧路径另一模式
     ];
 
-    let lib_path = candidates.iter().find(|dir| {
-        Path::new(&format!("{}/c_core.lib", dir)).exists()
-    });
+    let lib_path = candidates
+        .iter()
+        .find(|dir| Path::new(&format!("{}/c_core.lib", dir)).exists());
 
     match lib_path {
         Some(path) => {
@@ -23,7 +27,10 @@ fn main() {
         }
         None => panic!(
             "c_core.lib not found in any of: {:?}",
-            candidates.iter().map(|d| format!("{}/c_core.lib", d)).collect::<Vec<_>>()
+            candidates
+                .iter()
+                .map(|d| format!("{}/c_core.lib", d))
+                .collect::<Vec<_>>()
         ),
     }
 

@@ -4,7 +4,6 @@ target("c_core")
     
     add_includedirs("include", "third_party/kiss_fft")
     add_files("src/*.c|test_*.c", "third_party/kiss_fft/*.c")
-    add_cflags("/utf-8")
     
     if is_plat("windows") then
         add_syslinks("ole32", "oleaut32", "winmm")
@@ -13,5 +12,5 @@ target("c_core")
     
     if is_mode("release") then
         set_optimize("fastest")
-        add_cflags("/arch:AVX2", "/fp:fast")
+        add_cflags("-mavx2", "-ffast-math")
     end

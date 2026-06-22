@@ -17,7 +17,7 @@ struct fft_plan {
 /* ------------------------------------------------------------------ */
 
 fft_plan_t *fft_create(uint32_t nfft) {
-    fft_plan_t *plan = calloc(1, sizeof(fft_plan_t));
+    fft_plan_t *plan = (fft_plan_t *)calloc(1, sizeof(fft_plan_t));
     if (!plan) {
         return NULL;
     }
@@ -73,7 +73,7 @@ void fft_magnitude(const kiss_fft_cpx *fft_output, float *magnitude, uint32_t nf
  * Returns an array of length screen_points where map[i] = FFT bin index.
  */
 uint32_t *log_map_create(uint32_t nfft, uint32_t screen_points, float sample_rate) {
-    uint32_t *map = malloc(screen_points * sizeof(uint32_t));
+    uint32_t *map = (uint32_t *)malloc(screen_points * sizeof(uint32_t));
     if (!map) {
         return NULL;
     }

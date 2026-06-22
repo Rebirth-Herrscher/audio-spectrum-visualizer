@@ -2,10 +2,10 @@ set_project("audio-spectrum-visualizer")
 set_version("0.1.0")
 set_languages("c11")
 
--- 目标平台 Windows，clang-cl 编译器 + MSVC 后端
+-- Clang 前端 + MSVC 后端（clangd 兼容 compile_commands.json）
 set_plat("windows")
 set_arch("x64")
-set_toolchains("clang-cl")
+set_toolchains("clang")
 
 -- 每次构建自动更新 compile_commands.json
 add_rules("plugin.compile_commands.autoupdate")
