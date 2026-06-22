@@ -35,7 +35,8 @@
 ### 构建引擎
 
 ```powershell
-cargo build --release --target x86_64-pc-windows-msvc --manifest-path rust_engine/Cargo.toml
+cd rust_engine
+cargo build --release
 ```
 
 ### 启动

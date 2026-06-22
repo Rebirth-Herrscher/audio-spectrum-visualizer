@@ -32,8 +32,7 @@ class SpectrumPage extends StatefulWidget {
   State<SpectrumPage> createState() => _SpectrumPageState();
 }
 
-class _SpectrumPageState extends State<SpectrumPage>
-    with SingleTickerProviderStateMixin {
+class _SpectrumPageState extends State<SpectrumPage> with SingleTickerProviderStateMixin {
   EngineBridge? _engine;
   bool _capturing = false;
   String _status = 'Initializing...';
@@ -94,16 +93,13 @@ class _SpectrumPageState extends State<SpectrumPage>
     if (_engine == null || !_capturing || _ffiBuf == null) return;
     try {
       final ptr = _ffiBuf!;
-      final useLinear =
-          _style == SpectrumStyle.bars ||
-          _style == SpectrumStyle.radar ||
-          _style == SpectrumStyle.radial;
-      final n = useLinear
-          ? _engine!.engineReadSpectrumLinear(ptr, _spectrumSize)
-          : _engine!.engineReadSpectrum(ptr, _spectrumSize);
+      final useLinear = _style == SpectrumStyle.bars || _style == SpectrumStyle.radar || _style == SpectrumStyle.radial;
+      final n = useLinear ? _engine!.engineReadSpectrumLinear(ptr, _spectrumSize) : _engine!.engineReadSpectrum(ptr, _spectrumSize);
       if (n < 0) {
         final e = _engine!.engineLastError();
-        if (e != nullptr) { setState(() => _status = 'Error: ${fromCString(e)}'); }
+        if (e != nullptr) {
+          setState(() => _status = 'Error: ${fromCString(e)}');
+        }
         _stopCapture();
         return;
       }
@@ -115,16 +111,25 @@ class _SpectrumPageState extends State<SpectrumPage>
           }
         }
         _spectrum.setAll(0, ptr.asTypedList(n));
-        for (var i = 0; i < n; i++) { if (_spectrum[i].isNaN || _spectrum[i].isInfinite) _spectrum[i] = 0.0; }
+        for (var i = 0; i < n; i++) {
+          if (_spectrum[i].isNaN || _spectrum[i].isInfinite) _spectrum[i] = 0.0;
+        }
         final tMax = _findMax(_spectrum);
         if (tMax <= 0) {
           // All zeros — instantly reset smoothing to avoid twitching
           _smoothMax = 0.0;
-          for (var i = 0; i < n; i++) { _smooth[i] = 0.0; }
-          for (var i = 0; i < _peaks.length; i++) { _peaks[i] = 0.0; }
+          for (var i = 0; i < n; i++) {
+            _smooth[i] = 0.0;
+          }
+          for (var i = 0; i < _peaks.length; i++) {
+            _peaks[i] = 0.0;
+          }
         } else {
-          if (_smoothMax <= 0) { _smoothMax = tMax; }
-          else { _smoothMax += (tMax - _smoothMax) * 0.5; }
+          if (_smoothMax <= 0) {
+            _smoothMax = tMax;
+          } else {
+            _smoothMax += (tMax - _smoothMax) * 0.5;
+          }
           for (var i = 0; i < n; i++) {
             final t = (_spectrum[i] / _smoothMax).clamp(0.0, 1.0);
             final factor = t > _smooth[i] ? 0.25 : 0.5;
@@ -136,10 +141,7 @@ class _SpectrumPageState extends State<SpectrumPage>
         for (var i = 0; i < n; i++) {
           sum += _spectrum[i];
         }
-        final vol = (sum / n / (_smoothMax > 0 ? _smoothMax : 1.0)).clamp(
-          0.0,
-          1.0,
-        );
+        final vol = (sum / n / (_smoothMax > 0 ? _smoothMax : 1.0)).clamp(0.0, 1.0);
         _glow += (vol - _glow) * 0.15;
       }
       if (mounted) setState(() {});
@@ -164,19 +166,13 @@ class _SpectrumPageState extends State<SpectrumPage>
         builder: (_) => StatefulBuilder(
           builder: (ctx, setSheet) => Container(
             margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1A2E).withValues(alpha: 0.95),
-              borderRadius: BorderRadius.circular(20),
-            ),
+            decoration: BoxDecoration(color: const Color(0xFF1A1A2E).withValues(alpha: 0.95), borderRadius: BorderRadius.circular(20)),
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '设置',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                const Text('设置', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -185,26 +181,11 @@ class _SpectrumPageState extends State<SpectrumPage>
                     DropdownButton<SpectrumStyle>(
                       value: _style,
                       items: const [
-                        DropdownMenuItem(
-                          value: SpectrumStyle.classic,
-                          child: Text('经典曲线'),
-                        ),
-                        DropdownMenuItem(
-                          value: SpectrumStyle.mirror,
-                          child: Text('镜像曲线'),
-                        ),
-                        DropdownMenuItem(
-                          value: SpectrumStyle.bars,
-                          child: Text('柱状图'),
-                        ),
-                        DropdownMenuItem(
-                          value: SpectrumStyle.radar,
-                          child: Text('圆形雷达'),
-                        ),
-                        DropdownMenuItem(
-                          value: SpectrumStyle.radial,
-                          child: Text('径向柱状'),
-                        ),
+                        DropdownMenuItem(value: SpectrumStyle.classic, child: Text('经典曲线')),
+                        DropdownMenuItem(value: SpectrumStyle.mirror, child: Text('镜像曲线')),
+                        DropdownMenuItem(value: SpectrumStyle.bars, child: Text('柱状图')),
+                        DropdownMenuItem(value: SpectrumStyle.radar, child: Text('圆形雷达')),
+                        DropdownMenuItem(value: SpectrumStyle.radial, child: Text('径向柱状')),
                       ],
                       onChanged: (s) {
                         setState(() => _style = s!);
@@ -221,22 +202,10 @@ class _SpectrumPageState extends State<SpectrumPage>
                     DropdownButton<ColorTheme>(
                       value: _theme,
                       items: const [
-                        DropdownMenuItem(
-                          value: ColorTheme.rainbow,
-                          child: Text('🌈 彩虹'),
-                        ),
-                        DropdownMenuItem(
-                          value: ColorTheme.fire,
-                          child: Text('🔥 火焰'),
-                        ),
-                        DropdownMenuItem(
-                          value: ColorTheme.neon,
-                          child: Text('💜 霓虹'),
-                        ),
-                        DropdownMenuItem(
-                          value: ColorTheme.ice,
-                          child: Text('❄️ 冰蓝'),
-                        ),
+                        DropdownMenuItem(value: ColorTheme.rainbow, child: Text('🌈 彩虹')),
+                        DropdownMenuItem(value: ColorTheme.fire, child: Text('🔥 火焰')),
+                        DropdownMenuItem(value: ColorTheme.neon, child: Text('💜 霓虹')),
+                        DropdownMenuItem(value: ColorTheme.ice, child: Text('❄️ 冰蓝')),
                       ],
                       onChanged: (t) {
                         setState(() => _theme = t!);
@@ -265,7 +234,9 @@ class _SpectrumPageState extends State<SpectrumPage>
   void dispose() {
     _stopCapture();
     _ticker?.dispose();
-    if (_ffiBuf != null) { calloc.free(_ffiBuf!); }
+    if (_ffiBuf != null) {
+      calloc.free(_ffiBuf!);
+    }
     super.dispose();
   }
 
@@ -282,17 +253,7 @@ class _SpectrumPageState extends State<SpectrumPage>
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: CustomPaint(
-                painter: SpectrumPainter(
-                  _spectrum,
-                  _smooth,
-                  _smoothMax,
-                  _peaks,
-                  _style,
-                  _theme,
-                  _glow,
-                  _trails,
-                  _particles,
-                ),
+                painter: SpectrumPainter(_spectrum, _smooth, _smoothMax, _peaks, _style, _theme, _glow, _trails, _particles),
               ),
             ),
           )
@@ -300,30 +261,17 @@ class _SpectrumPageState extends State<SpectrumPage>
           const Center(
             child: Text(
               'Press Start',
-              style: TextStyle(
-                color: Colors.white24,
-                fontSize: 24,
-                fontWeight: FontWeight.w300,
-              ),
+              style: TextStyle(color: Colors.white24, fontSize: 24, fontWeight: FontWeight.w300),
             ),
           ),
         // Floating controls
-        Positioned(
-          right: 16,
-          top: 48,
-          child: _glassButton(Icons.settings, () => _showSettings()),
-        ),
+        Positioned(right: 16, top: 48, child: _glassButton(Icons.settings, () => _showSettings())),
         Positioned(left: 16, top: 48, child: _statusText()),
         Positioned(
           bottom: 36,
           left: 0,
           right: 0,
-          child: Center(
-            child: _pillButton(
-              _capturing ? 'Stop' : 'Start',
-              _capturing ? _stopCapture : _startCapture,
-            ),
-          ),
+          child: Center(child: _pillButton(_capturing ? 'Stop' : 'Start', _capturing ? _stopCapture : _startCapture)),
         ),
       ],
     ),
@@ -332,17 +280,10 @@ class _SpectrumPageState extends State<SpectrumPage>
   Widget _statusText() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12)),
       child: Text(
         _status,
-        style: const TextStyle(
-          fontSize: 11,
-          color: Colors.white30,
-          fontWeight: FontWeight.w300,
-        ),
+        style: const TextStyle(fontSize: 11, color: Colors.white30, fontWeight: FontWeight.w300),
       ),
     );
   }
@@ -353,10 +294,7 @@ class _SpectrumPageState extends State<SpectrumPage>
       child: Container(
         width: 36,
         height: 36,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(18),
-        ),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(18)),
         child: Icon(icon, color: Colors.white.withValues(alpha: 0.4), size: 18),
       ),
     );
@@ -367,18 +305,10 @@ class _SpectrumPageState extends State<SpectrumPage>
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(28),
-        ),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(28)),
         child: Text(
           label,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.7),
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            letterSpacing: 2,
-          ),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14, fontWeight: FontWeight.w400, letterSpacing: 2),
         ),
       ),
     );
@@ -461,10 +391,7 @@ class SpectrumPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (spectrum.isEmpty ||
-        smooth.isEmpty ||
-        smooth.length != spectrum.length ||
-        smoothMax <= 0) {
+    if (spectrum.isEmpty || smooth.isEmpty || smooth.length != spectrum.length || smoothMax <= 0) {
       return;
     }
     if (_peaks.length != spectrum.length) {
@@ -475,19 +402,14 @@ class SpectrumPainter extends CustomPainter {
     }
 
     // ---- Background glow ----
-    if (_style != SpectrumStyle.radar &&
-        _style != SpectrumStyle.radial &&
-        _glow > 0.01) {
+    if (_style != SpectrumStyle.radar && _style != SpectrumStyle.radial && _glow > 0.01) {
       canvas.drawCircle(
         Offset(size.width / 2, size.height),
         size.height * (_glow * 0.9 + 0.3),
         Paint()
           ..shader = RadialGradient(
             colors: [
-              _lerpPalette(
-                _gradient(_theme),
-                0.0,
-              ).withValues(alpha: _glow * 0.3),
+              _lerpPalette(_gradient(_theme), 0.0).withValues(alpha: _glow * 0.3),
               Colors.transparent,
             ],
           ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
@@ -525,23 +447,13 @@ class SpectrumPainter extends CustomPainter {
       if (_style == SpectrumStyle.bars) {
         final barW = (bw * 0.7).clamp(2.0, 8.0);
         final col = _lerpPalette(pal, i / spectrum.length);
-        canvas.drawRect(
-          Rect.fromLTWH(x - barW / 2, y, barW, h),
-          Paint()..color = col.withValues(alpha: 0.8),
-        );
-        canvas.drawRect(
-          Rect.fromLTWH(x - barW / 2, y, barW, 2.0),
-          Paint()..color = Colors.white.withValues(alpha: 0.6),
-        );
+        canvas.drawRect(Rect.fromLTWH(x - barW / 2, y, barW, h), Paint()..color = col.withValues(alpha: 0.8));
+        canvas.drawRect(Rect.fromLTWH(x - barW / 2, y, barW, 2.0), Paint()..color = Colors.white.withValues(alpha: 0.6));
       } else {
         if (i == 0) {
           path.moveTo(x, y);
         } else {
-          final px = (i - 1) * bw + bw / 2,
-              py =
-                  size.height -
-                  (smooth[i - 1] * size.height).clamp(0.0, size.height),
-              mx = (px + x) / 2;
+          final px = (i - 1) * bw + bw / 2, py = size.height - (smooth[i - 1] * size.height).clamp(0.0, size.height), mx = (px + x) / 2;
           path.quadraticBezierTo(px, py, mx, (py + y) / 2);
           path.lineTo(x, y);
         }
@@ -620,17 +532,11 @@ class SpectrumPainter extends CustomPainter {
         canvas.drawPath(
           fillPath.transform(mm.storage),
           Paint()
-            ..shader =
-                LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    pal.first.withValues(alpha: 0.15),
-                    Colors.transparent,
-                  ],
-                ).createShader(
-                  Rect.fromLTWH(0, size.height, size.width, size.height * 0.5),
-                )
+            ..shader = LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [pal.first.withValues(alpha: 0.15), Colors.transparent],
+            ).createShader(Rect.fromLTWH(0, size.height, size.width, size.height * 0.5))
             ..style = PaintingStyle.fill,
         );
         canvas.drawPath(
@@ -662,8 +568,7 @@ class SpectrumPainter extends CustomPainter {
     }
     _particles.removeWhere((p) => p.life <= 0);
     for (var i = 0; i < _peaks.length; i += 8) {
-      if (_peaks[i] > 0.35 &&
-          (DateTime.now().millisecondsSinceEpoch % 2 == 0)) {
+      if (_peaks[i] > 0.35 && (DateTime.now().millisecondsSinceEpoch % 2 == 0)) {
         _particles.add(
           _Particle(
             x: i * bw + bw / 2,
@@ -690,11 +595,7 @@ class SpectrumPainter extends CustomPainter {
           ..color = col.withValues(alpha: p.life * 0.6)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
       );
-      canvas.drawCircle(
-        Offset(p.x, p.y),
-        0.8,
-        Paint()..color = Colors.white.withValues(alpha: p.life * 0.9),
-      );
+      canvas.drawCircle(Offset(p.x, p.y), 0.8, Paint()..color = Colors.white.withValues(alpha: p.life * 0.9));
     }
   }
 
@@ -725,16 +626,8 @@ class SpectrumPainter extends CustomPainter {
           ..style = PaintingStyle.stroke,
       );
     }
-    canvas.drawLine(
-      Offset(cx - maxR, cy),
-      Offset(cx + maxR, cy),
-      Paint()..color = Colors.white.withValues(alpha: 0.04),
-    );
-    canvas.drawLine(
-      Offset(cx, cy - maxR),
-      Offset(cx, cy + maxR),
-      Paint()..color = Colors.white.withValues(alpha: 0.04),
-    );
+    canvas.drawLine(Offset(cx - maxR, cy), Offset(cx + maxR, cy), Paint()..color = Colors.white.withValues(alpha: 0.04));
+    canvas.drawLine(Offset(cx, cy - maxR), Offset(cx, cy + maxR), Paint()..color = Colors.white.withValues(alpha: 0.04));
 
     final radarPath = Path();
     for (var i = 0; i < n; i++) {
@@ -761,10 +654,7 @@ class SpectrumPainter extends CustomPainter {
     canvas.drawPath(
       radarPath,
       Paint()
-        ..shader = SweepGradient(
-          center: Alignment.center,
-          colors: cols,
-        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: maxR))
+        ..shader = SweepGradient(center: Alignment.center, colors: cols).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: maxR))
         ..style = PaintingStyle.fill,
     );
     canvas.drawPath(
@@ -782,11 +672,7 @@ class SpectrumPainter extends CustomPainter {
         ..strokeWidth = 1
         ..style = PaintingStyle.stroke,
     );
-    canvas.drawCircle(
-      Offset(cx, cy),
-      3,
-      Paint()..color = Colors.white.withValues(alpha: 0.4),
-    );
+    canvas.drawCircle(Offset(cx, cy), 3, Paint()..color = Colors.white.withValues(alpha: 0.4));
   }
 
   void _drawRadial(Canvas canvas, Size size, List<Color> pal) {
@@ -796,11 +682,7 @@ class SpectrumPainter extends CustomPainter {
     final n = spectrum.length;
 
     // Center circle
-    canvas.drawCircle(
-      Offset(cx, cy),
-      innerR,
-      Paint()..color = Colors.white.withValues(alpha: 0.1),
-    );
+    canvas.drawCircle(Offset(cx, cy), innerR, Paint()..color = Colors.white.withValues(alpha: 0.1));
     canvas.drawCircle(
       Offset(cx, cy),
       innerR,
@@ -845,13 +727,7 @@ class SpectrumPainter extends CustomPainter {
 
 class _Particle {
   double x, y, vx, speed, life;
-  _Particle({
-    required this.x,
-    required this.y,
-    required this.vx,
-    required this.speed,
-    required this.life,
-  });
+  _Particle({required this.x, required this.y, required this.vx, required this.speed, required this.life});
 }
 
 class _BgPainter extends CustomPainter {

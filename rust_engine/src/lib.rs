@@ -6,12 +6,12 @@ use std::panic::catch_unwind;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use windows::Win32::Foundation::{HANDLE, WAIT_OBJECT_0};
 use windows::Win32::Media::Audio::*;
-use windows::core::GUID;
 use windows::Win32::System::Com::*;
 use windows::Win32::System::Threading::{
     CREATE_EVENT, CREATE_EVENT_INITIAL_SET, CreateEventExW, EVENT_MODIFY_STATE,
     SYNCHRONIZATION_SYNCHRONIZE, WaitForSingleObject,
 };
+use windows::core::GUID;
 
 const REFTIMES_PER_MILLISEC: i64 = 10000;
 
@@ -25,6 +25,7 @@ static LAST_ERROR: std::sync::Mutex<String> = std::sync::Mutex::new(String::new(
 fn publish(log: Vec<f32>, lin: Vec<f32>) {
     SPECTRUM.store(Some(std::sync::Arc::new((log, lin))));
 }
+
 fn set_error(msg: &str) {
     *LAST_ERROR.lock().unwrap() = msg.to_string();
 }
@@ -46,6 +47,7 @@ struct RingBuf {
     w: usize,
     r: usize,
 }
+
 impl RingBuf {
     fn new(cap: usize) -> Self {
         Self {
@@ -96,17 +98,20 @@ fn build_log_map(nfft: usize, sp: usize, sr: f32) -> Vec<usize> {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn engine_version() -> *const std::os::raw::c_char {
-    static V: &CStr = c"spectrum_engine_v0.5.0";
+    static V: &CStr = c"spectrum_engine_v0.5.1";
     V.as_ptr()
 }
+
 #[unsafe(no_mangle)]
 pub extern "C" fn engine_get_spectrum_size() -> i32 {
     SPECTRUM_LEN.load(Ordering::Acquire) as i32
 }
+
 #[unsafe(no_mangle)]
 pub extern "C" fn engine_get_sample_rate() -> i32 {
     SAMPLE_RATE.load(Ordering::Acquire) as i32
 }
+
 #[unsafe(no_mangle)]
 pub extern "C" fn engine_last_error() -> *const std::os::raw::c_char {
     let err = LAST_ERROR.lock().unwrap();
@@ -124,6 +129,7 @@ struct WasapiCtx {
     sr: u32,
     _hev: HANDLE,
 }
+
 impl Drop for WasapiCtx {
     fn drop(&mut self) {
         unsafe {
@@ -327,6 +333,7 @@ pub extern "C" fn engine_stop_capture() {
         std::thread::sleep(std::time::Duration::from_millis(10));
     }
 }
+
 #[unsafe(no_mangle)]
 pub extern "C" fn engine_read_spectrum(b: *mut f32, l: i32) -> i32 {
     if !RUNNING.load(Ordering::Acquire) {
@@ -334,6 +341,7 @@ pub extern "C" fn engine_read_spectrum(b: *mut f32, l: i32) -> i32 {
     }
     read_sp(b, l, false)
 }
+
 #[unsafe(no_mangle)]
 pub extern "C" fn engine_read_spectrum_linear(b: *mut f32, l: i32) -> i32 {
     if !RUNNING.load(Ordering::Acquire) {

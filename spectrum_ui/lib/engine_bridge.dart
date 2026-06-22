@@ -24,8 +24,8 @@ class EngineBridge {
 
     final candidates = <String>[
       // flutter run CWD (spectrum_ui/)
-      '../rust_engine/target/x86_64-pc-windows-msvc/release/spectrum_engine.dll',
-      '../rust_engine/target/x86_64-pc-windows-msvc/debug/spectrum_engine.dll',
+      '../rust_engine/target/release/spectrum_engine.dll',
+      '../rust_engine/target/debug/spectrum_engine.dll',
       // 与 exe 同目录（双击运行 / 发布）
       '$exeParent\\spectrum_engine.dll',
       // 项目根 CWD
