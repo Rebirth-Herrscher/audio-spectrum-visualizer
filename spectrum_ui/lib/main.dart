@@ -43,7 +43,6 @@ class _SpectrumPageState extends State<SpectrumPage> with SingleTickerProviderSt
   final List<double> _smooth = [];
   double _smoothMax = 0.0;
   final List<double> _peaks = [];
-  final List<(Path, double)> _trails = [];
   final List<_Particle> _particles = [];
   double _glow = 0.0;
   SpectrumStyle _style = SpectrumStyle.mirror;
@@ -93,7 +92,7 @@ class _SpectrumPageState extends State<SpectrumPage> with SingleTickerProviderSt
     if (_engine == null || !_capturing || _ffiBuf == null) return;
     try {
       final ptr = _ffiBuf!;
-      final useLinear = _style == SpectrumStyle.bars || _style == SpectrumStyle.radar || _style == SpectrumStyle.radial;
+      final useLinear = _style == SpectrumStyle.bars;
       final n = useLinear ? _engine!.engineReadSpectrumLinear(ptr, _spectrumSize) : _engine!.engineReadSpectrum(ptr, _spectrumSize);
       if (n < 0) {
         final e = _engine!.engineLastError();
@@ -253,7 +252,7 @@ class _SpectrumPageState extends State<SpectrumPage> with SingleTickerProviderSt
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: CustomPaint(
-                painter: SpectrumPainter(_spectrum, _smooth, _smoothMax, _peaks, _style, _theme, _glow, _trails, _particles),
+                painter: SpectrumPainter(_spectrum, _smooth, _smoothMax, _peaks, _style, _theme, _glow, _particles),
               ),
             ),
           )
@@ -323,7 +322,6 @@ class SpectrumPainter extends CustomPainter {
   final SpectrumStyle _style;
   final ColorTheme _theme;
   final double _glow;
-  final List<(Path, double)> _trails;
   final List<_Particle> _particles;
   SpectrumPainter(
     this.spectrum,
@@ -333,7 +331,6 @@ class SpectrumPainter extends CustomPainter {
     this._style,
     this._theme,
     this._glow,
-    this._trails,
     this._particles,
   );
 
@@ -470,34 +467,6 @@ class SpectrumPainter extends CustomPainter {
       fillPath
         ..lineTo(size.width, size.height)
         ..close();
-
-      // ---- Trail effect (ghost of past frames) ----
-      for (final (oldPath, age) in _trails) {
-        final alpha = (0.12 * (1.0 - age)).clamp(0.0, 0.12);
-        canvas.drawPath(
-          oldPath,
-          Paint()
-            ..color = Colors.white.withValues(alpha: alpha)
-            ..strokeWidth = 2.5
-            ..style = PaintingStyle.stroke
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-        );
-        canvas.drawPath(
-          oldPath,
-          Paint()
-            ..color = Colors.white.withValues(alpha: alpha * 2)
-            ..strokeWidth = 1.2
-            ..style = PaintingStyle.stroke,
-        );
-      }
-      // Age trails, add current
-      for (var i = _trails.length - 1; i >= 0; i--) {
-        _trails[i] = (_trails[i].$1, _trails[i].$2 + 0.04);
-        if (_trails[i].$2 >= 1.0) {
-          _trails.removeAt(i);
-        }
-      }
-      _trails.add((Path.from(path), 0.0));
 
       // ---- Main curve ----
       canvas.drawPath(
