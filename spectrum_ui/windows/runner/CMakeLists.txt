@@ -42,7 +42,7 @@ add_dependencies(${BINARY_NAME} flutter_assemble)
 # Copy spectrum_engine.dll next to the executable
 add_custom_command(TARGET ${BINARY_NAME} POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "${CMAKE_SOURCE_DIR}/../../rust_engine/target/x86_64-pc-windows-msvc/release/spectrum_engine.dll"
+    "${CMAKE_SOURCE_DIR}/../../rust_engine/target/release/spectrum_engine.dll"
     "$<TARGET_FILE_DIR:${BINARY_NAME}>/spectrum_engine.dll"
   COMMENT "Copying spectrum_engine.dll"
 )
